@@ -139,6 +139,546 @@
             100% { box-shadow: inset 0 0 4px #ffffff, 0 0 4px #ffffff; border-color: #ffffff; }
         }
 
+        /* 🛋️ THE SCROLL BUFFER: Generates a completely empty spacer element at the bottom */
+        .scroll-buffer {
+            height: 200px;
+            width: 100%;
+            background-color: transparent;
+        }
+
+        /* Sleek Interlocking Pop-Up Modal Setup */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-box {
+            background-color: #111111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 25px;
+            width: 90%;
+            max-width: 420px;
+            box-shadow: 0 4px 25px rgba(255,255,255,0.08);
+        }
+        .modal-box h3 {
+            margin-bottom: 15px;
+            border-bottom: 1px solid #222;
+            padding-bottom: 8px;
+            color: #fff;
+            font-size: 18px;
+        }
+        .modal-info-row {
+            margin-bottom: 10px;
+            font-size: 13px;
+            color: #eee;
+        }
+        .modal-info-row span {
+            color: #666;
+            font-weight: bold;
+            display: inline-block;
+            width: 90px;
+            text-transform: uppercase;
+            font-size: 11px;
+        }
+        .close-btn {
+            background-color: #ffffff;
+            color: #000000;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            float: right;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        .close-btn:hover {
+            background-color: #cccccc;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>📅 Master Group Schedule Compiler</h1>
+
+    <div class="schedule-window">
+        <table>
+            <thead>
+                <tr>
+                    <th class="time-col">Time Interval</th>
+                    <th>Monday</th>
+                    <th>Tuesday</th>
+                    <th>Wednesday</th>
+                    <th>Thursday</th>
+                    <th>Friday</th>
+                </tr>
+            </thead>
+            <tbody id="schedule-body">
+                </tbody>
+        </table>
+        
+        <div class="scroll-buffer"></div>
+    </div>
+
+    <div class="modal-overlay" id="infoModal">
+        <div class="modal-box">
+            <h3 id="pop-subject">Subject</h3>
+            <div class="modal-info-row"><span>Student:</span> <id id="pop-name"></id></div>
+            <div class="modal-info-row"><span>Section:</span> <id id="pop-section"></id></div>
+            <div class="modal-info-row"><span>Teacher:</span> <id id="pop-teacher"></id></div>
+            <div class="modal-info-row"><span>Room/Lab:</span> <id id="pop-room"></id></div>
+            <button class="close-btn" onclick="closeModal()">Close Window</button>
+        </div>
+    </div>
+
+    <script>
+        // Compiled Database
+        const scheduleData = {
+            "MALACHITE": { className: "malachite", students: "Magbanua, Russel John",
+                subjectDetails: {
+                    "PERDEV": { teacher: "FERRER", room: "St. Joseph Bldg / Room 202" },
+                    "PE 3": { teacher: "LUBATON", room: "St. Joseph Bldg / Room 202" },
+                    "CHEMISTRY 1": { teacher: "RICARDO", room: "St. Joseph Bldg / BIOLAB" },
+                    "PR 2": { teacher: "NIEBRES", room: "St. Joseph Bldg / Room 202" },
+                    "PHYSICS 1": { teacher: "CHUA", room: "St. Joseph Bldg / RM 202" },
+                    "CONTEMP": { teacher: "NORBE", room: "St. Joseph Bldg / Room 202" },
+                    "HOMEROOM/GUIDANCE": { teacher: "FERRER", room: "St. Joseph Bldg / Room 306" }
+                },
+                items: [
+                    { days: [1], start: "07:00", end: "09:00", subject: "PERDEV" },
+                    { days: [4], start: "07:00", end: "09:00", subject: "PE 3" },
+                    { days: [5], start: "07:00", end: "09:00", subject: "CHEMISTRY 1" },
+                    { days: [1,5], start: "09:15", end: "11:15", subject: "PR 2" },
+                    { days: [2], start: "09:15", end: "11:15", subject: "CHEMISTRY 1" },
+                    { days: [3], start: "09:15", end: "11:15", subject: "PERDEV" },
+                    { days: [4], start: "09:15", end: "11:15", subject: "CHEMISTRY 1" },
+                    { days: [1,5], start: "11:30", end: "13:30", subject: "PHYSICS 1" },
+                    { days: [2], start: "11:30", end: "13:30", subject: "PHYSICS 1" },
+                    { days: [3], start: "11:30", end: "13:30", subject: "PR 2" },
+                    { days: [4], start: "11:30", end: "13:30", subject: "PERDEV" },
+                    { days: [1,5], start: "13:45", end: "14:45", subject: "CONTEMP" },
+                    { days: [2], start: "13:45", end: "14:45", subject: "HOMEROOM/GUIDANCE" },
+                    { days: [3,4], start: "13:45", end: "15:45", subject: "CONTEMP" }
+                ]
+            },
+            "MORGANITE": { className: "morganite", students: "Sulayao, Laurence Jr.",
+                subjectDetails: {
+                    "CHEMISTRY 1": { teacher: "DANZIL", room: "St. Joseph Bldg / Room 314" },
+                    "PHYSICS 1": { teacher: "CHUA", room: "St. Joseph Bldg / Room 314" },
+                    "CONTEMP": { teacher: "SUMAWANG", room: "St. Joseph Bldg / Room 314" },
+                    "PERDEV": { teacher: "MENDINA", room: "St. Joseph Bldg / Room 314" },
+                    "PR 2": { teacher: "GAHUMAN", room: "St. Joseph Bldg / Room 314" },
+                    "PE 3": { teacher: "LUBATON", room: "St. Joseph Bldg / Room 314" },
+                    "HOMEROOM/GUIDANCE": { teacher: "DANZIL", room: "St. Joseph Bldg / Room 315" }
+                },
+                items: [
+                    { days: [2], start: "07:00", end: "09:00", subject: "CHEMISTRY 1" },
+                    { days: [3], start: "07:00", end: "09:00", subject: "CHEMISTRY 1" },
+                    { days: [4], start: "07:00", end: "09:00", subject: "PHYSICS 1" },
+                    { days: [5], start: "07:00", end: "09:00", subject: "PHYSICS 1" },
+                    { days: [1,5], start: "09:15", end: "11:15", subject: "CONTEMP" },
+                    { days: [2,4], start: "09:15", end: "11:15", subject: "PERDEV" },
+                    { days: [3], start: "09:15", end: "11:15", subject: "PR 2" },
+                    { days: [1], start: "11:30", end: "13:30", subject: "CHEMISTRY 1" },
+                    { days: [2], start: "11:30", end: "13:30", subject: "CONTEMP" },
+                    { days: [3], start: "11:30", end: "13:30", subject: "PERDEV" },
+                    { days: [4,5], start: "11:30", end: "13:30", subject: "PR 2" },
+                    { days: [1], start: "13:45", end: "15:45", subject: "PHYSICS 1" },
+                    { days: [3], start: "13:45", end: "14:45", subject: "PE 3" },
+                    { days: [5], start: "13:45", end: "15:45", subject: "HOMEROOM/GUIDANCE" }
+                ]
+            },
+            "AMETHYST": { className: "amethyst", students: "Manlapaz, Vince",
+                subjectDetails: {
+                    "PR 2": { teacher: "MS. ROBILLES", room: "Sampaguita Bldg / Room 302" },
+                    "PERSONAL DEVELOPMENT": { teacher: "MR. PALOYO", room: "Sampaguita Bldg / Room 302" },
+                    "P.E. 3": { teacher: "MR. BIO", room: "Sampaguita Bldg / Room 302" },
+                    "COOKERY 1 & 2": { teacher: "MRS. MANGA", room: "Sampaguita Bldg / Room 302" },
+                    "COOKERY (LAB)": { teacher: "MRS. MANGA", room: "St. Jo Bldg / Room 401 Kitchen Lab" },
+                    "ENTREP / ELECTIVE": { teacher: "MR. MENORIAS", room: "Sampaguita / St. Jo Bldg" }
+                },
+                items: [
+                    { days: [3], start: "07:00", end: "08:00", subject: "PR 2" },
+                    { days: [4], start: "07:00", end: "08:00", subject: "P.E. 3" },
+                    { days: [3], start: "08:00", end: "09:00", subject: "PERSONAL DEVELOPMENT" },
+                    { days: [4,5], start: "08:00", end: "09:00", subject: "ENTREP / ELECTIVE" },
+                    { days: [1,5], start: "09:15", end: "11:15", subject: "PERSONAL DEVELOPMENT" },
+                    { days: [2], start: "09:15", end: "11:15", subject: "ENTREP / ELECTIVE" },
+                    { days: [3], start: "09:15", end: "11:15", subject: "COOKERY 1 & 2" },
+                    { days: [4], start: "09:15", end: "11:15", subject: "PR 2" },
+                    { days: [1], start: "11:30", end: "13:30", subject: "ENTREP / ELECTIVE" },
+                    { days: [2], start: "11:30", end: "12:30", subject: "ENTREP / ELECTIVE" },
+                    { days: [2], start: "12:30", end: "13:30", subject: "COOKERY (LAB)" },
+                    { days: [4,5], start: "11:30", end: "13:30", subject: "COOKERY 1 & 2" },
+                    { days: [1,4,5], start: "13:45", end: "14:45", subject: "COOKERY 1 & 2" },
+                    { days: [2], start: "13:45", end: "14:45", subject: "COOKERY (LAB)" },
+                    { days: [1,5], start: "14:45", end: "15:45", subject: "PR 2" },
+                    { days: [2], start: "14:45", end: "15:45", subject: "COOKERY (LAB)" },
+                    { days: [1], start: "16:00", end: "17:00", subject: "PR 2" },
+                    { days: [2], start: "16:00", end: "17:00", subject: "PERSONAL DEVELOPMENT" }
+                ]
+            },
+            "EMERALD": { className: "emerald", students: "Herrera, Mica",
+                subjectDetails: {
+                    "CONTEMP": { teacher: "MAAM TORRES", room: "Main Rm 402" },
+                    "BUS ETHICS": { teacher: "Ms. Mendija (Adviser)", room: "Main Rm 402" },
+                    "HOMEROOM": { teacher: "Ms. Mendija (Adviser)", room: "Main Rm 402" },
+                    "PE 3": { teacher: "Not Specified", room: "Main Rm 402/Court" },
+                    "PR 2": { teacher: "MAAM VERGEL DE DIOS", room: "Main Rm 402" },
+                    "PER DEV": { teacher: "MAAM CORDERO", room: "Main Rm 402" },
+                    "FABM 2": { teacher: "Not Specified", room: "Main Room 402" }
+                },
+                items: [
+                    { days: [1], start: "07:00", end: "09:00", subject: "CONTEMP" },
+                    { days: [2,4], start: "07:00", end: "09:00", subject: "BUS ETHICS" },
+                    { days: [3], start: "08:00", end: "09:00", subject: "HOMEROOM" },
+                    { days: [5], start: "08:00", end: "09:00", subject: "PE 3" },
+                    { days: [1], start: "09:15", end: "11:15", subject: "PR 2" },
+                    { days: [2,4], start: "09:15", end: "11:15", subject: "CONTEMP" },
+                    { days: [3,5], start: "09:15", end: "11:15", subject: "PER DEV" },
+                    { days: [1,3], start: "11:30", end: "13:30", subject: "FABM 2" },
+                    { days: [2,5], start: "11:30", end: "13:30", subject: "PR 2" },
+                    { days: [4], start: "11:30", end: "13:30", subject: "PER DEV" },
+                    { days: [3], start: "13:45", end: "15:45", subject: "BUS ETHICS" },
+                    { days: [5], start: "13:45", end: "15:45", subject: "FABM 2" }
+                ]
+            },
+            "AQUAMARINE": { className: "aquamarine", students: "Fabello, K. / Lu, M.",
+                subjectDetails: {
+                    "PERDEV": { teacher: "FERRER", room: "St. Joseph Bldg / Room 201" },
+                    "HOMEROOM/GUIDANCE": { teacher: "GAHUMAN", room: "St. Joseph Bldg / Room 306" },
+                    "CONTEMP": { teacher: "MILANA", room: "St. Joseph Bldg / Room 201" },
+                    "PHYSICS 1": { teacher: "GEOLINA", room: "St. Joseph Bldg / Room 201" },
+                    "CHEMISTRY 1": { teacher: "PINEDA", room: "St. Joseph Bldg / Room 201" },
+                    "PR 2": { teacher: "GAHUMAN", room: "St. Joseph Bldg / Room 201" },
+                    "PE 3": { teacher: "LUBATON", room: "St. Joseph Bldg / Room 201" }
+                },
+                items: [
+                    { days: [4], start: "07:00", end: "09:00", subject: "PERDEV" },
+                    { days: [3], start: "08:00", end: "09:00", subject: "HOMEROOM/GUIDANCE" },
+                    { days: [1,3,5], start: "09:15", end: "11:15", subject: "CONTEMP" },
+                    { days: [2,4], start: "09:15", end: "11:15", subject: "PHYSICS 1" },
+                    { days: [1,2,4], start: "11:30", end: "13:30", subject: "CHEMISTRY 1" },
+                    { days: [3,5], start: "11:30", end: "13:30", subject: "PERDEV" },
+                    { days: [1,2,3,4,5], start: "13:45", end: "14:45", subject: "PR 2" },
+                    { days: [1,3], start: "14:45", end: "15:45", subject: "PHYSICS 1" },
+                    { days: [2], start: "14:45", end: "15:45", subject: "PE 3" },
+                    { days: [5], start: "14:45", end: "15:45", subject: "PR 2" }
+                ]
+            },
+            "BISMUTH": { className: "bismuth", students: "Umapas, J. / Curameng, J.",
+                subjectDetails: {
+                    "CONTEMP": { teacher: "SUMAWANG", room: "St. Joseph Bldg / Room 206" },
+                    "PERDEV": { teacher: "TONI", room: "St. Joseph Bldg / PHYLAB" },
+                    "PR 2": { teacher: "GAHUMAN", room: "St. Joseph Bldg / Room 206" },
+                    "PHYSICS 1": { teacher: "GEOLINA", room: "St. Joseph Bldg / PHYLAB" },
+                    "CHEMISTRY 1": { teacher: "CASTILLO", room: "St. Joseph Bldg / Room 206" },
+                    "PE 3": { teacher: "SOLAÑA", room: "St. Joseph Bldg / Room 206" },
+                    "HOMEROOM/GUIDANCE": { teacher: "GEOLINA", room: "St. Joseph Bldg / Room AVR 1" }
+                },
+                items: [
+                    { days: [1,3,5], start: "07:00", end: "09:00", subject: "CONTEMP" },
+                    { days: [2,4], start: "07:00", end: "09:00", subject: "PERDEV" },
+                    { days: [1,2,4], start: "09:15", end: "11:15", subject: "PR 2" },
+                    { days: [3], start: "09:15", end: "11:15", subject: "PERDEV" },
+                    { days: [5], start: "09:15", end: "11:15", subject: "PHYSICS 1" },
+                    { days: [1,2], start: "11:30", end: "13:30", subject: "PHYSICS 1" },
+                    { days: [3,4,5], start: "11:30", end: "13:30", subject: "CHEMISTRY 1" },
+                    { days: [1], start: "13:45", end: "14:45", subject: "PE 3" },
+                    { days: [4], start: "13:45", end: "14:45", subject: "HOMEROOM/GUIDANCE" }
+                ]
+            },
+            "DIAMOND": { className: "diamond", students: "Mercado, V. / Cunanan, L.",
+                subjectDetails: {
+                    "HOMEROOM/GUIDANCE": { teacher: "SUMAWANG", room: "St. Joseph Bldg / Room M2" },
+                    "PR 2": { teacher: "NIEBRES", room: "St. Joseph Bldg / Room M1" },
+                    "CONTEMP": { teacher: "SUMAWANG", room: "St. Joseph Bldg / Room M2" },
+                    "PERDEV": { teacher: "VENDIOLA", room: "St. Joseph Bldg / Room M1" },
+                    "PE 3": { teacher: "LUBATON", room: "St. Joseph Bldg / Room M3" },
+                    "PHYSICS 1": { teacher: "CABUHAT", room: "St. Joseph Bldg / BIOLAB" },
+                    "CHEMISTRY 1": { teacher: "PINEDA", room: "St. Joseph Bldg / Room M3" }
+                },
+                items: [
+                    { days: [2], start: "07:00", end: "08:00", subject: "HOMEROOM/GUIDANCE" },
+                    { days: [3], start: "07:00", end: "09:00", subject: "PR 2" },
+                    { days: [4], start: "07:00", end: "09:00", subject: "CONTEMP" },
+                    { days: [5], start: "07:00", end: "09:00", subject: "PERDEV" },
+                    { days: [1], start: "08:00", end: "09:00", subject: "PE 3" },
+                    { days: [2], start: "08:00", end: "09:00", subject: "CONTEMP" },
+                    { days: [1,3], start: "09:15", end: "11:15", subject: "PERDEV" },
+                    { days: [2], start: "09:15", end: "11:15", subject: "PHYSICS 1" },
+                    { days: [4], start: "09:15", end: "11:15", subject: "CHEMISTRY 1" },
+                    { days: [5], start: "09:15", end: "11:15", subject: "PHYSICS 1" },
+                    { days: [1,2], start: "11:30", end: "13:30", subject: "PR 2" },
+                    { days: [3], start: "11:30", end: "13:30", subject: "CONTEMP" },
+                    { days: [5], start: "11:30", end: "13:30", subject: "CHEMISTRY 1" },
+                    { days: [1], start: "13:45", end: "15:45", subject: "PHYSICS 1" },
+                    { days: [2], start: "13:45", end: "15:45", subject: "CHEMISTRY 1" },
+                    { days: [5], start: "13:45", end: "15:45", subject: "CONTEMP" }
+                ]
+            },
+            "TOPAZ": { className: "topaz", students: "Israel, Rica / Cabria, April",
+                subjectDetails: {
+                    "BUS ETHICS": { teacher: "Ms. Mendija (Adviser)", room: "Main RM 401" },
+                    "PE 3": { teacher: "Not Specified", room: "Main RM 401/Court" },
+                    "PR 2": { teacher: "Not Specified", room: "Main RM 401" },
+                    "FABM 2": { teacher: "Not Specified", room: "Main Room 401" },
+                    "CONTEMP": { teacher: "Not Specified", room: "Main RM 401" },
+                    "PER DEV": { teacher: "Not Specified", room: "Main RM 401" },
+                    "HOMEROOM": { teacher: "Ms. Mendija (Adviser)", room: "Main RM 401" }
+                },
+                items: [
+                    { days: [1], start: "07:00", end: "09:00", subject: "BUS ETHICS" },
+                    { days: [2], start: "07:00", end: "08:00", subject: "PE 3" },
+                    { days: [2], start: "08:00", end: "09:00", subject: "PR 2" },
+                    { days: [4], start: "07:00", end: "09:00", subject: "FABM 2" },
+                    { days: [5], start: "08:00", end: "09:00", subject: "PR 2" },
+                    { days: [1], start: "09:15", end: "11:15", subject: "FABM 2" },
+                    { days: [2,3], start: "09:15", end: "11:15", subject: "BUS ETHICS" },
+                    { days: [4], start: "09:15", end: "11:15", subject: "PR 2" },
+                    { days: [5], start: "09:15", end: "11:15", subject: "CONTEMP" },
+                    { days: [1,2], start: "11:30", end: "13:30", subject: "PER DEV" },
+                    { days: [3], start: "11:30", end: "13:30", subject: "PR 2" },
+                    { days: [4], start: "11:30", end: "13:30", subject: "CONTEMP" },
+                    { days: [5], start: "11:30", end: "13:30", subject: "FABM 2" },
+                    { days: [1], start: "13:45", end: "14:45", subject: "HOMEROOM" },
+                    { days: [3], start: "13:45", end: "15:45", subject: "CONTEMP" },
+                    { days: [4,5], start: "13:45", end: "15:45", subject: "PER DEV" }
+                ]
+            }
+        };
+
+        const timeSlots = [
+            { start: "07:00", end: "08:00", label: "7:00 - 8:00 AM", isBreak: false },
+            { start: "08:00", end: "09:00", label: "8:00 - 9:00 AM", isBreak: false },
+            { start: "09:00", end: "09:15", label: "9:00 - 9:15 AM", isBreak: true },
+            { start: "09:15", end: "10:15", label: "9:15 - 10:15 AM", isBreak: false },
+            { start: "10:15", end: "11:15", label: "10:15 - 11:15 AM", isBreak: false },
+            { start: "11:15", end: "11:30", label: "11:15 - 11:30 AM", isBreak: true },
+            { start: "11:30", end: "12:30", label: "11:30 AM - 12:30 PM", isBreak: false },
+            { start: "12:30", end: "13:30", label: "12:30 - 1:30 PM", isBreak: false },
+            { start: "13:30", end: "13:45", label: "1:30 - 1:45 PM", isBreak: true },
+            { start: "13:45", end: "14:45", label: "1:45 - 2:45 PM", isBreak: false },
+            { start: "14:45", end: "15:45", label: "2:45 - 3:45 PM", isBreak: false },
+            { start: "15:45", end: "16:00", label: "3:45 - 4:00 PM", isBreak: true },
+            { start: "16:00", end: "17:00", label: "4:00 - 5:00 PM", isBreak: false }
+        ];
+
+        function timeToMinutes(t) {
+            const [h, m] = t.split(':').map(Number);
+            return h * 60 + m;
+        }
+
+        const tbody = document.getElementById('schedule-body');
+        
+        timeSlots.forEach((slot) => {
+            const row = document.createElement('tr');
+            row.setAttribute('data-start', slot.start);
+            row.setAttribute('data-end', slot.end);
+            
+            const timeTd = document.createElement('td');
+            timeTd.className = 'time-col';
+            timeTd.innerText = slot.label;
+            row.appendChild(timeTd);
+
+            for (let day = 1; day <= 5; day++) {
+                const td = document.createElement('td');
+                td.setAttribute('data-day', day);
+
+                if (slot.isBreak) {
+                    td.className = 'health-break';
+                    td.innerText = 'Health Break';
+                } else {
+                    let hasClasses = false;
+                    Object.keys(scheduleData).forEach(secName => {
+                        const sec = scheduleData[secName];
+                        sec.items.forEach(item => {
+                            if (item.days.includes(day)) {
+                                const sStart = timeToMinutes(item.start);
+                                const sEnd = timeToMinutes(item.end);
+                                const slotStart = timeToMinutes(slot.start);
+                                const slotEnd = timeToMinutes(slot.end);
+
+                                if (slotStart >= sStart && slotEnd <= sEnd) {
+                                    hasClasses = true;
+                                    const card = document.createElement('div');
+                                    card.className = `member-card ${sec.className}`;
+                                    card.innerHTML = `${sec.students} <span class="section-label">${secName}</span>`;
+                                    
+                                    const details = sec.subjectDetails[item.subject] || { teacher: "N/A", room: "N/A" };
+                                    
+                                    card.onclick = (e) => {
+                                        e.stopPropagation();
+                                        openModal(item.subject, sec.students, secName, details.teacher, details.room);
+                                    };
+                                    td.appendChild(card);
+                                }
+                            }
+                        });
+                    });
+                    if (!hasClasses) {
+                        td.style.color = '#1c1c1c';
+                        td.innerText = '-';
+                    }
+                }
+                row.appendChild(td);
+            }
+            tbody.appendChild(row);
+        });
+
+        function openModal(sub, name, sec, teacher, room) {
+            document.getElementById('pop-subject').innerText = sub;
+            document.getElementById('pop-name').innerText = name;
+            document.getElementById('pop-section').innerText = sec;
+            document.getElementById('pop-teacher').innerText = teacher;
+            document.getElementById('pop-room').innerText = room;
+            document.getElementById('infoModal').style.display = 'flex';
+        }
+        function closeModal() {
+            document.getElementById('infoModal').style.display = 'none';
+        }
+
+        function updateRealTimeHighlight() {
+            document.querySelectorAll('.current-time-slot').forEach(el => {
+                el.classList.remove('current-time-slot');
+            });
+
+            const now = new Date();
+            const currentDay = now.getDay(); 
+            
+            if (currentDay >= 1 && currentDay <= 5) {
+                const currentMin = now.getHours() * 60 + now.getMinutes();
+                const activeSlot = timeSlots.find(slot => {
+                    return currentMin >= timeToMinutes(slot.start) && currentMin < timeToMinutes(slot.end);
+                });
+
+                if (activeSlot) {
+                    const TargetRow = document.querySelector(`tr[data-start="${activeSlot.start}"]`);
+                    if (TargetRow) {
+                        const targetCell = TargetRow.querySelector(`td[data-day="${currentDay}"]`);
+                        if (targetCell) {
+                            targetCell.classList.add('current-time-slot');
+                        }
+                    }
+                }
+            }
+        }
+
+        updateRealTimeHighlight();
+        setInterval(updateRealTimeHighlight, 10000);
+    </script>
+</body>
+</html>
+        .schedule-window {
+            width: 100%;
+            max-height: calc(100vh - 110px);
+            overflow: auto;
+            border: 2px solid #222;
+            border-radius: 8px;
+            background-color: #050505;
+        }
+
+        /* Pure Dark Spreadsheet Layout */
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            min-width: 1400px; /* Expansive, un-cramped tracking spacing */
+            text-align: left;
+        }
+        th, td {
+            border: 1px solid #1a1a1a;
+            padding: 10px;
+            vertical-align: top;
+            min-height: 80px;
+        }
+        
+        /* Sticky Navigation Panels */
+        thead th {
+            position: sticky;
+            top: 0;
+            background-color: #0d0d0d;
+            z-index: 10;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 13px;
+            border-bottom: 2px solid #333;
+            height: 45px;
+            color: #eee;
+        }
+        .time-col {
+            width: 140px;
+            font-weight: bold;
+            color: #888;
+            background-color: #0d0d0d;
+        }
+
+        /* Health Break Segment Layout */
+        .health-break {
+            background-color: #121212 !important;
+            color: #555;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-align: center;
+            vertical-align: middle;
+            font-weight: bold;
+        }
+
+        /* Compact Member Graphic Badges */
+        .member-card {
+            display: block;
+            margin-bottom: 6px;
+            padding: 6px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            color: #ffffff;
+            font-weight: 600;
+            transition: transform 0.1s ease, filter 0.15s ease;
+        }
+        .member-card:last-child {
+            margin-bottom: 0;
+        }
+        .member-card:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.25);
+        }
+        .section-label {
+            display: block;
+            font-size: 9px;
+            font-weight: bold;
+            text-transform: uppercase;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+
+        /* 8 Unique, Explicitly Different Color Highlighting Classes */
+        .aquamarine { background-color: #007a78; border-left: 4px solid #00ffff; }
+        .emerald    { background-color: #005c2f; border-left: 4px solid #2ecc71; }
+        .morganite  { background-color: #8c4312; border-left: 4px solid #e67e22; }
+        .malachite  { background-color: #1e631e; border-left: 4px solid #27ae60; }
+        .bismuth    { background-color: #511c74; border-left: 4px solid #9b59b6; }
+        .diamond    { background-color: #1f4e79; border-left: 4px solid #3498db; }
+        .amethyst   { background-color: #691c47; border-left: 4px solid #ff69b4; }
+        .topaz      { background-color: #7a6e15; border-left: 4px solid #f1c40f; }
+
+        /* Dynamic Real-Time Pulsing "Breathing" Glow Loop */
+        .current-time-slot {
+            position: relative;
+            animation: breathingGlow 2.5s infinite ease-in-out;
+            z-index: 5;
+        }
+        @keyframes breathingGlow {
+            0% { box-shadow: inset 0 0 4px #ffffff, 0 0 4px #ffffff; border-color: #ffffff; }
+            50% { box-shadow: inset 0 0 16px #ffffff, 0 0 16px #ffffff; border-color: #ffffff; }
+            100% { box-shadow: inset 0 0 4px #ffffff, 0 0 4px #ffffff; border-color: #ffffff; }
+        }
+
         /* Sleek Interlocking Pop-Up Modal Setup */
         .modal-overlay {
             display: none;
